@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/tx 
+		http://www.springframework.org/schema/tx/spring-tx-2.5.xsd
+		http://www.springframework.org/schema/context
+    	http://www.springframework.org/schema/context/spring-context-2.5.xsd">
+  	<!-- 开启注解处理器 -->
+  	<context:annotation-config/>
+  	<!-- 定义使用C3p0连接池的数据源 -->
+  	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<!-- 定义连接数据库的JDBC驱动 -->
+		<property name="driverClass">
+			<value>com.mysql.jdbc.Driver</value>
+		</property>
+		<!--连接数据库所用的URL -->
+		<property name="jdbcUrl">
+			<value>jdbc:mysql://localhost:3306/db_user?useUnicode=true&amp;characterEncoding=gbk</value>
+		</property>
+		<!-- 连接数据库的用户名 -->
+		<property name="user">
+			<value>root</value>
+		</property>
+		<!-- 连接数据库的密码 -->
+		<property name="password">
+			<value>123456</value>
+		</property>
+		<!-- 连接数据库连接池的最大连接数 -->
+		<property name="maxPoolSize">
+			<value>20</value>
+		</property>
+		<!-- 连接数据库连接池的最小连接数 -->
+		<property name="minPoolSize">
+			<value>2</value>
+		</property>
+		<!-- 连接数据库连接池的初始化连接数 -->
+		<property name="initialPoolSize">
+			<value>2</value>
+		</property>
+		<!-- 设置数据库连接池的连接的最大空闲时间,单位为秒 -->
+		<property name="maxIdleTime">
+			<value>20</value>
+		</property>
+	</bean>
+	<!-- 注册一个JDBC数据源事务管理器 -->
+	<bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+	<!-- 定义一个事物通知 -->
+	<tx:advice id="txAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<!-- 所有以load开头的方法声明为不需要事务 -->
+			<tx:method name="load*" read-only="true" propagation="NOT_SUPPORTED"/>
+			<!-- 其它所有方法声明为默认的REQUIRED类型的事务传播方式 -->
+			<tx:method name="*"/>
+		</tx:attributes>
+	</tx:advice>
+	
+	<!-- 基于AOP技术的事务管理实现 -->
+	<aop:config>
+		
+			<!-- 定义切入点，切入点正则表达式execution(* test.spring.action.*(..))
+			的意思是拦截 test.spring.action.UserAction类中国的所有方法，不论方法参数
+			有无，也不管返回结果为何类型
+			-->
+			<aop:pointcut expression="execution(* test.spring.dao.impl.UserDaoImpl.*(..))" id="transactionpointcut"/>
+			<!-- 引用一个事物通知txAdvice -->
+			<aop:advisor advice-ref="txAdvice" pointcut-ref="transactionpointcut"/>
+			
+	</aop:config>
+	
+	<!-- 注册一个JdbcTemplate实例名称为jdbcTemplate -->
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<constructor-arg ref="dataSource"></constructor-arg>
+	</bean>
+	
+	<!-- 注册一个UserDaoImpl实例名称为dao -->
+	<bean id="dao" class="test.spring.dao.impl.UserDaoImpl"></bean>
+	<!-- 注册一个UserserviceImpl实例名称为service -->
+	<bean id="userService" class="test.spring.service.impl.UserServiceImpl"></bean>
+	<!-- 注册一个UserAction实例名称为userAction -->
+	<bean id="userAction" class="test.spring.action.UserAction"></bean>
+	
+	
+	
+</beans>
